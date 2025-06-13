@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Press Lead Edge Info</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0a1b2b; /* dark navy */
+      color: #e0f7fa; /* light cyan text */
+      padding: 2rem;
+    }
+
+    h1 {
+      color: #1de3ff;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 1rem;
+      color: #90f0ff;
+    }
+
+    select {
+      width: 100%;
+      padding: 0.5rem;
+      border: none;
+      border-radius: 5px;
+      background-color: #10293e;
+      color: #1de3ff;
+      font-size: 1rem;
+      margin-top: 0.3rem;
+    }
+
+    #result {
+      margin-top: 2rem;
+      padding: 1rem;
+      border: 1px solid #1de3ff;
+      border-radius: 5px;
+      background-color: #10293e;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Press Lead Edge Information</h1>
+
+  <label>Company:</label>
+  <select id="companySelect">
+    <option value="">Select</option>
+  </select>
+
+  <label>Location:</label>
+  <select id="locationSelect">
+    <option value="">Select</option>
+  </select>
+
+  <label>Press:</label>
+  <select id="pressSelect">
+    <option value="">Select</option>
+  </select>
+
+  <div id="result"></div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDV6jVtyxIncItd4Zg6QzWxg_VT3OKQq0w",
+      authDomain: "press-information-c4e8a.firebaseapp.com",
+      projectId: "press-information-c4e8a",
+      storageBucket: "press-information-c4e8a.appspot.com",
+      messagingSenderId: "640473978066",
+      appId: "1:640473978066:web:163eef5c0e1441847c490b"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const companySelect = document.getElementById("companySelect");
+    const locationSelect = document.getElementById("locationSelect");
+    const pressSelect = document.getElementById("pressSelect");
+    const resultDiv = document.getElementById("result");
+
+    // Load unique companies
+    db.collection("companies").get().then(snapshot => {
+      snapshot.forEach(doc => {
+        const companyName = doc.data().name;
+        const opt = document.createElement("option");
+        opt.value = doc.id;
+        opt.textContent = companyName || doc.id;
+        companySelect.appendChild(opt);
+      });
+    });
+
+    companySelect.addEventListener("change", () => {
+      const companyId = companySelect.value;
+      locationSelect.innerHTML = "<option value=''>Select</option>";
+      pressSelect.innerHTML = "<option value=''>Select</option>";
+      resultDiv.innerHTML = "";
+
+      if (!companyId) return;
+
+      db.collection("companies").doc(companyId).collection("locations").get().then(snapshot => {
+        snapshot.forEach(doc => {
+          const locationName = doc.data().name;
+          const opt = document.createElement("option");
+          opt.value = doc.id;
+          opt.textContent = locationName || doc.id;
+          locationSelect.appendChild(opt);
+        });
+      });
+    });
+
+    locationSelect.addEventListener("change", () => {
+      const companyId = companySelect.value;
+      const locationId = locationSelect.value;
+      pressSelect.innerHTML = "<option value=''>Select</option>";
+      resultDiv.innerHTML = "";
+
+      if (!companyId || !locationId) return;
+
+      db.collection("companies").doc(companyId).collection("locations").doc(locationId).collection("presses").get().then(snapshot => {
+        snapshot.forEach(doc => {
+          const pressName = doc.data().name;
+          const opt = document.createElement("option");
+          opt.value = doc.id;
+          opt.textContent = pressName || doc.id;
+          pressSelect.appendChild(opt);
+        });
+      });
+    });
+
+    pressSelect.addEventListener("change", () => {
+      const companyId = companySelect.value;
+      const locationId = locationSelect.value;
+      const pressId = pressSelect.value;
+      resultDiv.innerHTML = "";
+
+      if (!companyId || !locationId || !pressId) return;
+
+      db.collection("companies").doc(companyId).collection("locations").doc(locationId).collection("presses").doc(pressId).get().then(doc => {
+        if (doc.exists) {
+          const data = doc.data();
+          resultDiv.innerHTML = `
+            <strong>Glue Tab:</strong> ${data.glueTab || "N/A"}<br>
+            <strong>Lead Edge:</strong> ${data.leadEdge || "N/A"}
+          `;
+        } else {
+          resultDiv.textContent = "Press data not found.";
+        }
+      });
+    });
+  </script>
+</body>
+</html>
